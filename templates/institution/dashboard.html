@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Institution Dashboard | AICTE / UGC AI System</title>
+    <link rel="stylesheet" href="/static/css/inst-dashboard.css">
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- LEFT NAVIGATION -->
+    <div class="sidebar">
+        <h2>AICTE / UGC</h2>
+        <ul>
+            <li class="active"><a href="/institution_dashboard">Dashboard</a></li>
+            <li><a href="/profile">Profile</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+        <h2>Institution Dashboard</h2>
+
+        <!-- Summary Cards -->
+        <div class="cards">
+            <div class="card">
+                <h3>12</h3>
+                <p>Total Programs</p>
+            </div>
+            <div class="card approved">
+                <h3>7</h3>
+                <p>Approved</p>
+            </div>
+            <div class="card pending">
+                <h3>3</h3>
+                <p>Pending</p>
+            </div>
+            <div class="card rejected">
+                <h3>2</h3>
+                <p>Rejected</p>
+            </div>
+        </div>
+
+        <!-- Institution Profile Summary (STATIC here) -->
+        <div class="section">
+            <h3>Institution Profile</h3>
+            <div class="info-grid">
+                <div><strong>Name:</strong> ABC Institute of Technology</div>
+                <div><strong>AICTE ID:</strong> AICTE-2024-00123</div>
+                <div><strong>Type:</strong> Engineering College</div>
+                <div><strong>Accreditation:</strong> NBA & NAAC A+</div>
+            </div>
+        </div>
+
+        <!-- Recent Applications -->
+        <div class="section">
+            <h3>Recent Applications</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Program</th>
+                        <th>Department</th>
+                        <th>Submitted On</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>B.Tech CSE</td>
+                        <td>Computer Science</td>
+                        <td>12-Jan-2025</td>
+                        <td class="status approved">Approved</td>
+                    </tr>
+                    <tr>
+                        <td>M.Tech AI</td>
+                        <td>Artificial Intelligence</td>
+                        <td>18-Jan-2025</td>
+                        <td class="status pending">Under Review</td>
+                    </tr>
+                    <tr>
+                        <td>B.Tech ECE</td>
+                        <td>Electronics</td>
+                        <td>20-Jan-2025</td>
+                        <td class="status rejected">Rejected</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="section ai-box">
+            <h3>AI Insights & Recommendations</h3>
+            <p><strong>Approval Probability:</strong> 82%</p>
+            <p><strong>Risk Factors:</strong> Faculty-student ratio slightly below threshold</p>
+            <p><strong>AI Suggestion:</strong> Increase qualified faculty and resubmit within next cycle</p>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

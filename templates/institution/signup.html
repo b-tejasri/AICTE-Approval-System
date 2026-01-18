@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Institution Registration | AICTE / UGC Analysis System</title>
+    <link rel="stylesheet" href="/static/css/signup.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Institution Registration</h2>
+    <p class="subtitle">
+        AI-based Approval Analysis System (AICTE / UGC)
+    </p>
+
+    <form action="/register" method="POST">
+
+        <!-- ROLE FIXED AS INSTITUTION -->
+        <input type="hidden" name="role" value="institution">
+
+        <div class="form-group">
+            <label>Institution Name</label>
+            <input type="text" name="institution_name" required>
+        </div>
+
+        <div class="form-group">
+            <label>Institute Type</label>
+            <select name="institute_type" required>
+                <option value="">Select</option>
+                <option value="College">College</option>
+                <option value="University">University</option>
+                <option value="Autonomous">Autonomous Institution</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>AICTE / UGC Institute ID</label>
+            <input type="text" name="institute_id" required>
+        </div>
+
+        <div class="form-group">
+            <label>Affiliating University Name</label>
+            <input type="text" name="affiliated_university">
+        </div>
+
+        <div class="form-group">
+            <label>Year of Establishment</label>
+            <input type="number" name="established_year" min="1800" max="2026" required>
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>State</label>
+                <input type="text" name="state" required>
+            </div>
+
+            <div class="form-group">
+                <label>District</label>
+                <input type="text" name="district" required>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>City</label>
+                <input type="text" name="city" required>
+            </div>
+
+            <div class="form-group">
+                <label>PIN Code</label>
+                <input type="number" name="pincode" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Institute Category</label>
+            <select name="category" required>
+                <option value="">Select</option>
+                <option value="Government">Government</option>
+                <option value="Private">Private</option>
+                <option value="Aided">Aided</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Official Email ID</label>
+            <input type="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+            <label>Official Phone Number</label>
+            <input type="tel" name="phone" required>
+        </div>
+
+        <div class="form-group">
+            <label>Authorized Person Name</label>
+            <input type="text" name="authorized_person" required>
+        </div>
+
+        <div class="form-group">
+            <label>Designation</label>
+            <select name="designation" required>
+                <option value="">Select</option>
+                <option value="Principal">Principal</option>
+                <option value="Director">Director</option>
+                <option value="Admin">Admin</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" required>
+        </div>
+
+        <div class="consent-box">
+            <input type="checkbox" required>
+            <label>
+                I confirm that all information provided is true and accurate.
+            </label>
+        </div>
+
+        <button type="submit">Register Institution</button>
+    </form>
+
+</div>
+
+</body>
+</html>

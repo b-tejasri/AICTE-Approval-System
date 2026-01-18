@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Institution Profile</title>
+    <link rel="stylesheet" href="/static/css/inst-dashboard.css">
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>AICTE / UGC</h2>
+        <ul>
+            <li><a href="/institution_dashboard">Dashboard</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+            <li class="active"><a href="/profile">Profile</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h2>Institution Profile</h2>
+
+        <!-- Basic Info -->
+        <div class="section">
+            <h3>Basic Information</h3>
+            <div class="info-grid">
+                <div>
+                    <strong>Institution Name</strong>
+                    <span>{{ inst.institution_name }}</span>
+                </div>
+
+                <div>
+                    <strong>Institute Type</strong>
+                    <span>{{ inst.institute_type }}</span>
+                </div>
+                <div>
+                    <strong>AICTE / UGC ID</strong>
+                    <span>{{ inst.institute_id }}</span>
+                </div>
+                <div>
+                    <strong>Affiliating University</strong>
+                    <span>{{ inst.affiliating_university }}</span>
+                </div>
+                <div>
+                    <strong>Year of Establishment</strong>
+                    <span>{{ inst.year_of_establishment }}</span>
+                </div>
+                <div>
+                    <strong>Category</strong>
+                    <span>{{ inst.category }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Info -->
+        <div class="section">
+            <h3>Location Details</h3>
+            <div class="info-grid">
+                <div><strong>State</strong><span>{{ inst.state }}</span></div>
+                <div><strong>District</strong><span>{{ inst.district }}</span></div>
+                <div><strong>City</strong><span>{{ inst.city }}</span></div>
+                <div><strong>PIN Code</strong><span>{{ inst.pin_code }}</span></div>
+            </div>
+        </div>
+
+        <!-- Contact Info -->
+        <div class="section">
+            <h3>Contact & Authority</h3>
+            <div class="info-grid">
+                <div><strong>Official Email</strong><span>{{ inst.official_email }}</span></div>
+                <div><strong>Phone Number</strong><span>{{ inst.phone }}</span></div>
+                <div><strong>Authorized Person</strong><span>{{ inst.authorized_person }}</span></div>
+                <div><strong>Designation</strong><span>{{ inst.designation }}</span></div>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="section ai-box">
+            <h3>System Information</h3>
+            <p><strong>Registration Status:</strong> Active</p>
+            <p><strong>Last Updated:</strong> Auto-generated</p>
+            <p><strong>AI Review Status:</strong> Pending Evaluation</p>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
