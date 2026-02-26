@@ -803,116 +803,169 @@ async function doAuthorityLogin() {
 //  INSTITUTION DASHBOARD
 // ═══════════════════════════════════════════════════════
 async function loadDashboard() {
-  if(!institutionId) return;
+  if (!institutionId) return;
+
   try {
-    const res=await fetch(`${API}/dashboard/?institution_id=${institutionId}`);
-    if(!res.ok) return;
-    const d=await res.json();
-    dashboardData=d;
-    uploadedSections=d.sections_uploaded||[];
+    const res = await fetch(`${API}/dashboard/?institution_id=${institutionId}`);
+    if (!res.ok) return;
 
-    document.getElementById('dashSubtitle').textContent=d.institution_name+' — '+(d.aicte_id||'No AICTE ID');
-    document.getElementById('ds-uploads').textContent=uploadedSections.length;
-    document.getElementById('ds-students').textContent=d.inst_data?.total_students||'—';
-    document.getElementById('ds-faculty').textContent=d.inst_data?.total_faculty||'—';
-    document.getElementById('ds-labs').textContent=d.inst_data?.total_labs||'—';
-    document.getElementById('ds-risk').textContent=d.risk_score>0?d.risk_score+'/100':'—';
-    document.getElementById('ds-risk-level').textContent=d.risk_level||'Not Analyzed';
-    document.getElementById('ds-approval-prob').textContent=d.approval_probability>0?d.approval_probability+'%':'—';
-    document.getElementById('sidebarAicteId').textContent='AICTE ID: '+(d.aicte_id||'—');
+    const d = await res.json();
+    dashboardData = d;
+    uploadedSections = d.sections_uploaded || [];
 
-    // Sidebar risk card
-    if(d.risk_score>0) {
-      document.getElementById('sidebarRiskCard').style.display='block';
-      const rc=d.risk_score>=60?'var(--red-flag)':d.risk_score>=30?'var(--amber)':'var(--green-india)';
-      document.getElementById('sidebarRiskScore').style.color=rc;
-      document.getElementById('sidebarRiskScore').textContent=d.risk_score+'/100';
-      document.getElementById('sidebarRiskLevel').textContent=d.risk_level;
+    // =========================
+    // Basic Info
+    // =========================
+    document.getElementById('dashSubtitle').textContent =
+      (d.institution_name || '') + ' — ' + (d.aicte_id || 'No AICTE ID');
+
+    document.getElementById('ds-uploads').textContent = uploadedSections.length;
+    document.getElementById('ds-students').textContent = d.inst_data?.total_students || '—';
+    document.getElementById('ds-faculty').textContent = d.inst_data?.total_faculty || '—';
+    document.getElementById('ds-labs').textContent = d.inst_data?.total_labs || '—';
+    document.getElementById('ds-risk').textContent =
+      d.risk_score ? d.risk_score + '/100' : '—';
+    document.getElementById('ds-risk-level').textContent =
+      d.risk_level || 'Not Analyzed';
+    document.getElementById('ds-approval-prob').textContent =
+      d.approval_probability ? d.approval_probability + '%' : '—';
+
+    document.getElementById('sidebarAicteId').textContent =
+      'AICTE ID: ' + (d.aicte_id || '—');
+
+    // =========================
+    // Sidebar Risk Card
+    // =========================
+    if (d.risk_score > 0) {
+      document.getElementById('sidebarRiskCard').style.display = 'block';
+
+      const rc =
+        d.risk_score >= 60 ? 'var(--red-flag)' :
+        d.risk_score >= 30 ? 'var(--amber)' :
+        'var(--green-india)';
+
+      document.getElementById('sidebarRiskScore').style.color = rc;
+      document.getElementById('sidebarRiskScore').textContent =
+        d.risk_score + '/100';
+
+      document.getElementById('sidebarRiskLevel').textContent =
+        d.risk_level || '';
     }
 
-    // Sidebar approval card
-    if(d.approval_status) {
-      const ac=document.getElementById('sidebarApprovalCard');
-      ac.style.display='block';
-      const cfg={
-        pending:    {bg:'#FFF3CD',border:'var(--amber)',    color:var_amber,   text:'⏳ Pending'},
-        approved:   {bg:'#D4EDDA',border:'var(--green-india)',color:'#155724', text:'✅ Approved'},
-        rejected:   {bg:'#F8D7DA',border:'var(--red-flag)', color:'#721C24',  text:'❌ Rejected'},
-        resubmitted:{bg:'#E0ECFF',border:'#1A5EBF',          color:'#0A3D9E', text:'🔄 Resubmitted'},
-      }[d.approval_status]||{bg:'var(--gray-100)',border:'var(--border)',color:'var(--navy)',text:d.approval_status};
-      ac.style.background=cfg.bg;ac.style.borderColor=cfg.border;
-      document.getElementById('sidebarApprovalLabel').style.color=cfg.color;
-      document.getElementById('sidebarApprovalStatus').textContent=cfg.text;
-      document.getElementById('sidebarApprovalStatus').style.color=cfg.color;
+    // =========================
+    // Sidebar Approval Card
+    // =========================
+    if (d.approval_status) {
+      const ac = document.getElementById('sidebarApprovalCard');
+      ac.style.display = 'block';
+
+      const statusConfig = {
+        pending:     { bg:'#FFF3CD', border:'var(--amber)',       color:'#856404', text:'⏳ Pending' },
+        approved:    { bg:'#D4EDDA', border:'var(--green-india)', color:'#155724', text:'✅ Approved' },
+        rejected:    { bg:'#F8D7DA', border:'var(--red-flag)',    color:'#721C24', text:'❌ Rejected' },
+        resubmitted: { bg:'#E0ECFF', border:'#1A5EBF',            color:'#0A3D9E', text:'🔄 Resubmitted' }
+      };
+
+      const cfg = statusConfig[d.approval_status] || {
+        bg:'var(--gray-100)',
+        border:'var(--border)',
+        color:'var(--navy)',
+        text:d.approval_status
+      };
+
+      ac.style.background = cfg.bg;
+      ac.style.borderColor = cfg.border;
+
+      document.getElementById('sidebarApprovalLabel').style.color = cfg.color;
+      document.getElementById('sidebarApprovalStatus').textContent = cfg.text;
+      document.getElementById('sidebarApprovalStatus').style.color = cfg.color;
     }
 
-    // Approval banner
+    // =========================
+    // Approval Banner
+    // =========================
     renderApprovalBanner(d);
 
-// Professional submit button control
-const submitBtn = document.getElementById('submitApprovalBtn');
+    // =========================
+    // Professional Submit Button Logic
+    // =========================
+    const submitBtn = document.getElementById('submitApprovalBtn');
 
-if (!submitBtn) return;
+    if (submitBtn) {
 
-// Hide if already approved
-if (d.approval_status === 'approved') {
-  submitBtn.style.display = 'none';
-  return;
-}
+      // Hide completely if approved
+      if (d.approval_status === 'approved') {
+        submitBtn.style.display = 'none';
+      }
 
-// If rejected → allow resubmit
-if (d.latest_approval && d.latest_approval.status === 'rejected') {
-  submitBtn.style.display = 'inline-block';
-  submitBtn.disabled = false;
-  submitBtn.textContent = '🔄 Resubmit Application';
-  return;
-}
+      // Rejected → allow resubmit
+      else if (d.latest_approval && d.latest_approval.status === 'rejected') {
+        submitBtn.style.display = 'inline-block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🔄 Resubmit Application';
+      }
 
-// If already submitted/pending → disable button
-if (d.latest_approval && ['submitted','under_review','pending'].includes(d.latest_approval.status)) {
-  submitBtn.style.display = 'inline-block';
-  submitBtn.disabled = true;
-  submitBtn.textContent = '⏳ Application Under Review';
-  return;
-}
+      // Already submitted / under review
+      else if (d.latest_approval &&
+               ['submitted','under_review','pending']
+               .includes(d.latest_approval.status)) {
 
-// Enable only if ALL 6 sections uploaded
-if (uploadedSections.length === 6) {
-  submitBtn.style.display = 'inline-block';
-  submitBtn.disabled = false;
-  submitBtn.textContent = '📨 Submit for Approval';
-} else {
-  submitBtn.style.display = 'inline-block';
-  submitBtn.disabled = true;
-  submitBtn.textContent = `Upload all 6 sections (${uploadedSections.length}/6)`;
-}
+        submitBtn.style.display = 'inline-block';
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Application Under Review';
+      }
 
-    // Risk alert banner
-    const dashAlert=document.getElementById('dashAlert');
-    if(d.risk_level==='High') {
-      dashAlert.style.display='flex';dashAlert.className='alert-banner danger';
-      dashAlert.textContent='🔴 High Risk: '+((d.risk_factors||[])[0]||'');
-    } else if(d.risk_level==='Medium') {
-      dashAlert.style.display='flex';dashAlert.className='alert-banner warn';
-      dashAlert.textContent='⚠️ Medium Risk: '+((d.risk_factors||[])[0]||'');
-    } else {dashAlert.style.display='none';}
+      // Normal submission state
+      else {
+        submitBtn.style.display = 'inline-block';
 
-    // Section-wise compliance bars
+        if (uploadedSections.length === 6) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '📨 Submit for Approval';
+        } else {
+          submitBtn.disabled = true;
+          submitBtn.textContent =
+            `Upload all 6 sections (${uploadedSections.length}/6)`;
+        }
+      }
+    }
+
+    // =========================
+    // Risk Alert Banner
+    // =========================
+    const dashAlert = document.getElementById('dashAlert');
+
+    if (d.risk_level === 'High') {
+      dashAlert.style.display = 'flex';
+      dashAlert.className = 'alert-banner danger';
+      dashAlert.textContent =
+        '🔴 High Risk: ' + ((d.risk_factors || [])[0] || '');
+    }
+    else if (d.risk_level === 'Medium') {
+      dashAlert.style.display = 'flex';
+      dashAlert.className = 'alert-banner warn';
+      dashAlert.textContent =
+        '⚠️ Medium Risk: ' + ((d.risk_factors || [])[0] || '');
+    }
+    else {
+      dashAlert.style.display = 'none';
+    }
+
+    // =========================
+    // Section Rendering
+    // =========================
     renderSectionScores(d);
-    // Infrastructure summary
     renderInfraBody(d);
-    // Faculty stats
     renderFacultyStats(d);
-    // Accreditation
     renderAccredBody(d);
-    // Risk factors
     renderRiskFactors(d);
 
-    // Notification badge
     loadNotifBadge();
-  } catch(e) {console.error('Dashboard error:',e);}
-}
 
+  } catch (e) {
+    console.error('Dashboard error:', e);
+  }
+}
 function renderApprovalBanner(d) {
   const el=document.getElementById('dashApprovalBanner');
   if(!d.latest_approval) {el.innerHTML='';return;}
