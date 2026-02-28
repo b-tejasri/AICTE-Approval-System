@@ -1158,46 +1158,100 @@ function triggerUpload(sectionKey) {
 }
 
 async function handleFileSelected(event) {
-  const file=event.target.files[0];
-  if(!file||!currentUploadSection) return;
-  if(!file.name.toLowerCase().endsWith('.pdf')) {
-    showToast('❌ Only PDF files accepted. Please upload a .pdf file.','red');return;
+  const file = event.target.files[0];
+  if (!file || !currentUploadSection) return;
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    showToast('❌ Only PDF files accepted.', 'red'); return;
   }
-  const progress=document.getElementById('uploadProgress');
-  const resultCard=document.getElementById('uploadResultCard');
-  const btn=document.getElementById(`subtn-${currentUploadSection}`);
-  progress.style.display='flex';
-  progress.innerHTML=`<span class="loading-spinner spin-orange" style="flex-shrink:0"></span> Uploading "${file.name}" for <b>${currentUploadSection}</b> section... AI analyzing, please wait.`;
-  resultCard.style.display='none';
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="loading-spinner" style="border-top-color:var(--saffron)"></span> Analyzing...';}
-  const formData=new FormData();
-  formData.append('institution_id',institutionId);
-  formData.append('section_type',currentUploadSection);
-  formData.append('academic_year','2024-25');
-  formData.append('pdf_file',file);
+
+  const progress   = document.getElementById('uploadProgress');
+  const resultCard = document.getElementById('uploadResultCard');
+  const btn        = document.getElementById(`subtn-${currentUploadSection}`);
+
+  progress.style.display = 'flex';
+  progress.innerHTML = `<span class="loading-spinner spin-orange" style="flex-shrink:0"></span>
+    Uploading "<b>${file.name}</b>" for <b>${currentUploadSection}</b>… AI analyzing, please wait.`;
+  resultCard.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading-spinner" style="border-top-color:var(--saffron)"></span> Analyzing...'; }
+
+  // ── Step 1: AI extraction (existing /upload/ endpoint) ──────────
+  const formData = new FormData();
+  formData.append('institution_id', institutionId);
+  formData.append('section_type',   currentUploadSection);
+  formData.append('academic_year',  '2024-25');
+  formData.append('pdf_file',       file);
+
   try {
-    const res=await fetch(`${API}/upload/`,{method:'POST',body:formData});
-    const data=await res.json();
-    progress.style.display='none';
-    if(!res.ok) {
-      showToast('❌ Upload failed: '+(data.error||'Unknown error'),'red');
-      if(btn){btn.disabled=false;btn.textContent='📤 Upload PDF';}
+    const res  = await fetch(`${API}/upload/`, { method: 'POST', body: formData });
+    const data = await res.json();
+    progress.style.display = 'none';
+
+    if (!res.ok) {
+      showToast('❌ Upload failed: ' + (data.error || 'Unknown error'), 'red');
+      if (btn) { btn.disabled = false; btn.textContent = '📤 Upload PDF'; }
       return;
     }
-    if(!uploadedSections.includes(currentUploadSection)) uploadedSections.push(currentUploadSection);
-    const card=document.getElementById(`sucard-${currentUploadSection}`);
-    if(card){card.classList.add('done');card.classList.remove('rejected-card');}
-    const status=document.getElementById(`sustatus-${currentUploadSection}`);
-    if(status){status.textContent='✅ Uploaded & Analyzed';status.className='su-status uploaded';}
-    if(btn){btn.textContent='🔄 Re-upload PDF';btn.className='upload-btn success-btn';btn.disabled=false;}
-    resultCard.style.display='block';
-    document.getElementById('uploadResultBody').innerHTML=buildUploadResult(data);
-    showToast('✅ '+currentUploadSection.toUpperCase()+' PDF analyzed successfully!','green');
+
+    // ── Step 2: S3 upload (new endpoint) ─────────────────────────
+    progress.style.display = 'flex';
+    progress.innerHTML = `<span class="loading-spinner spin-orange" style="flex-shrink:0"></span>
+      Saving PDF to secure cloud storage…`;
+
+    const s3Form = new FormData();
+    s3Form.append('institution_id', institutionId);
+    s3Form.append('section_type',   currentUploadSection);
+    s3Form.append('pdf_file',       file);          // re-send same file
+
+    let s3Url = '';
+    try {
+      const s3Res  = await fetch(`${API}/upload-s3/`, { method: 'POST', body: s3Form });
+      const s3Data = await s3Res.json();
+      if (s3Res.ok) {
+        s3Url = s3Data.s3_url || '';
+        showToast('☁️ PDF saved to cloud storage.', 'green');
+      } else {
+        // S3 failure is non-blocking — AI data already saved
+        console.warn('S3 upload failed:', s3Data.error);
+        showToast('⚠️ AI done, but cloud save failed. Try again.', 'red');
+      }
+    } catch (s3Err) {
+      console.warn('S3 upload error:', s3Err.message);
+    }
+    progress.style.display = 'none';
+
+    // ── Step 3: Update UI ─────────────────────────────────────────
+    if (!uploadedSections.includes(currentUploadSection))
+      uploadedSections.push(currentUploadSection);
+
+    const card   = document.getElementById(`sucard-${currentUploadSection}`);
+    const status = document.getElementById(`sustatus-${currentUploadSection}`);
+    if (card)   { card.classList.add('done'); card.classList.remove('rejected-card'); }
+    if (status) { status.textContent = '✅ Uploaded & Analyzed'; status.className = 'su-status uploaded'; }
+
+    // Show S3 link below upload card if available
+    if (s3Url && card) {
+      let existingLink = card.querySelector('.s3-link');
+      if (!existingLink) {
+        existingLink = document.createElement('div');
+        existingLink.className = 's3-link';
+        existingLink.style.cssText = 'margin-top:6px;font-size:11px';
+        card.appendChild(existingLink);
+      }
+      existingLink.innerHTML = `☁️ <a href="${s3Url}" target="_blank"
+        style="color:var(--saffron);font-weight:700">View Uploaded PDF ↗</a>`;
+    }
+
+    if (btn) { btn.textContent = '🔄 Re-upload PDF'; btn.className = 'upload-btn success-btn'; btn.disabled = false; }
+
+    resultCard.style.display = 'block';
+    document.getElementById('uploadResultBody').innerHTML = buildUploadResult(data);
+    showToast('✅ ' + currentUploadSection.toUpperCase() + ' analyzed & saved!', 'green');
     loadDashboard();
-  } catch(e) {
-    progress.style.display='none';
-    showToast('Server error: '+e.message,'red');
-    if(btn){btn.disabled=false;btn.textContent='📤 Upload PDF';}
+
+  } catch (e) {
+    progress.style.display = 'none';
+    showToast('Server error: ' + e.message, 'red');
+    if (btn) { btn.disabled = false; btn.textContent = '📤 Upload PDF'; }
   }
 }
 
@@ -1701,61 +1755,177 @@ async function loadPendingReviews(statusFilter) {
 //  REVIEW MODAL
 // ═══════════════════════════════════════════════════════
 async function openReviewModal(approvalId) {
-  currentReviewApprovalId=approvalId;
-  const modal=document.getElementById('reviewModal');
-  const modalBody=document.getElementById('reviewModalBody');
+  currentReviewApprovalId = approvalId;
+  const modal     = document.getElementById('reviewModal');
+  const modalBody = document.getElementById('reviewModalBody');
   modal.classList.add('open');
-  modalBody.innerHTML='<div style="text-align:center;padding:40px"><div class="loading-spinner spin-orange" style="width:28px;height:28px;border-width:3px"></div></div>';
+  modalBody.innerHTML = '<div style="text-align:center;padding:40px"><div class="loading-spinner spin-orange" style="width:28px;height:28px;border-width:3px"></div></div>';
+
   try {
-    const url=`${API}/authority/pending/`;
-    const res=await fetch(url);
-    const data=await res.json();
-    const ar=data.find(a=>a.approval_id===approvalId);
-    if(!ar){modalBody.innerHTML='<div style="color:var(--red-flag)">Application not found.</div>';return;}
-    document.getElementById('reviewModalTitle').textContent=`Review: ${ar.institution_name}`;
-    const SECS=['faculty','labs','infrastructure','students','financials','accreditation'];
-    const secRows=SECS.map(sec=>{
-      const info=ar.sections_data?.[sec];
-      if(!info) return `<tr><td><b>${sec.toUpperCase()}</b></td><td colspan="3" style="color:var(--gray-500)">Not uploaded</td></tr>`;
-      const ai=info.ai_data||{};
-      let brief='';
-      if(sec==='faculty') brief=`Faculty: ${ai.total_faculty||0}, PhD: ${ai.faculty_phd_count||0}`;
-      else if(sec==='labs') brief=`Labs: ${ai.total_labs||0}`;
-      else if(sec==='students') brief=`Students: ${ai.total_students||0}`;
-      else if(sec==='infrastructure') brief=`Classrooms: ${ai.total_classrooms||0}, Library: ${(ai.library_books||0).toLocaleString()}`;
-      else if(sec==='financials') brief=`Budget: ₹${ai.annual_budget||0}L`;
-      else if(sec==='accreditation') brief=`NAAC: ${ai.naac_grade||'—'}, ISO: ${ai.iso_certified?'Yes':'No'}`;
+    // Fetch review data + PDFs in parallel
+   const reviewRes = await fetch(`${API}/authority/pending/`);
+    const reviewList = await reviewRes.json();
+    const ar = reviewList.find(a => a.approval_id === approvalId);
+    if (!ar) { modalBody.innerHTML = '<div style="color:var(--red-flag)">Application not found.</div>'; return; }
+
+    // Use ar.institution_id (NOT approvalId — they are different numbers!)
+    let pdfMap = {};
+    try {
+      const pdfsRes = await fetch(`${API}/institution-pdfs/?institution_id=${ar.institution_id}`);
+      if (pdfsRes.ok) {
+        const pdfsData = await pdfsRes.json();
+        pdfsData.forEach(p => { pdfMap[p.section_type] = p; });
+      }
+    } catch(e) { console.warn('PDF fetch failed:', e); }
+
+    document.getElementById('reviewModalTitle').textContent = `Review: ${ar.institution_name}`;
+
+    const SECS = ['faculty', 'labs', 'infrastructure', 'students', 'financials', 'accreditation'];
+
+    // ── Section rows with PDF view button ─────────────────────────
+    const secRows = SECS.map(sec => {
+      const info = ar.sections_data?.[sec];
+      const pdf  = pdfMap[sec];
+
+      // PDF view button
+      const pdfBtn = pdf && pdf.presigned_url
+        ? `<a href="${pdf.presigned_url}" target="_blank"
+            style="display:inline-block;background:var(--navy);color:#fff;padding:4px 10px;
+                   border-radius:4px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap">
+            📄 View PDF
+           </a>`
+        : `<span style="font-size:11px;color:var(--gray-500)">No PDF</span>`;
+
+      if (!info) {
+        return `<tr>
+          <td><b>${sec.toUpperCase()}</b></td>
+          <td colspan="2" style="color:var(--gray-500)">Not uploaded</td>
+          <td>${pdfBtn}</td>
+          <td><select id="secDec-${sec}-status" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+            <option value="pending">Pending</option>
+            <option value="approved">Approve</option>
+            <option value="rejected">Reject</option>
+          </select></td>
+          <td><input type="text" id="secDec-${sec}-notes" placeholder="Notes"
+              style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:100%"></td>
+        </tr>`;
+      }
+
+      const ai = info.ai_data || {};
+      let brief = '';
+      if (sec === 'faculty')        brief = `Faculty: ${ai.total_faculty||0}, PhD: ${ai.faculty_phd_count||0}`;
+      else if (sec === 'labs')       brief = `Labs: ${ai.total_labs||0}`;
+      else if (sec === 'students')   brief = `Students: ${ai.total_students||0}`;
+      else if (sec === 'infrastructure') brief = `Classrooms: ${ai.total_classrooms||0}, Lib: ${(ai.library_books||0).toLocaleString()}`;
+      else if (sec === 'financials') brief = `Budget: ₹${ai.annual_budget||0}L`;
+      else if (sec === 'accreditation') brief = `NAAC: ${ai.naac_grade||'—'}, ISO: ${ai.iso_certified?'Yes':'No'}`;
+
+      // Uploaded date from PDF map (if available)
+      const uploadedAt = pdf ? `<div style="font-size:10px;color:var(--gray-500)">${pdf.uploaded_at}</div>` : '';
+
       return `<tr>
-        <td><b>${sec.toUpperCase()}</b></td>
+        <td><b>${sec.toUpperCase()}</b>${uploadedAt}</td>
         <td style="font-size:12px">${brief}</td>
+        <td>${pdfBtn}</td>
         <td>
-          <select id="secDec-${sec}-status" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+          <select id="secDec-${sec}-status"
+            style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
             <option value="pending">Pending</option>
             <option value="approved">Approve</option>
             <option value="rejected">Reject</option>
           </select>
         </td>
-        <td><input type="text" id="secDec-${sec}-notes" placeholder="Notes (optional)" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:100%"></td>
+        <td><input type="text" id="secDec-${sec}-notes" placeholder="Notes (optional)"
+            style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:100%"></td>
       </tr>`;
     }).join('');
-    modalBody.innerHTML=`
-      <div style="margin-bottom:16px">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
-          <div style="background:var(--gray-100);border-radius:6px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--gray-500)">Risk Score</div><div style="font-family:'Rajdhani';font-size:24px;font-weight:700;color:${ar.risk_score>=60?'var(--red-flag)':ar.risk_score>=30?'var(--amber)':'var(--green-india)'}">${ar.risk_score}/100</div></div>
-          <div style="background:var(--gray-100);border-radius:6px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--gray-500)">Students</div><div style="font-family:'Rajdhani';font-size:24px;font-weight:700">${ar.inst_stats?.total_students||'—'}</div></div>
-          <div style="background:var(--gray-100);border-radius:6px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--gray-500)">NAAC Grade</div><div style="font-family:'Rajdhani';font-size:24px;font-weight:700">${ar.inst_stats?.naac_grade||'—'}</div></div>
+
+    // ── PDF summary strip at top ───────────────────────────────────
+    const totalPDFs   = Object.keys(pdfMap).length;
+    const pdfStrip    = totalPDFs > 0
+      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+           <span style="font-size:11px;font-weight:700;color:var(--navy)">📁 Uploaded PDFs (${totalPDFs}/6):</span>
+           ${SECS.map(s => {
+               const p = pdfMap[s];
+               return p && p.presigned_url
+                 ? `<a href="${p.presigned_url}" target="_blank"
+                       style="background:#E0ECFF;color:#0A3D9E;padding:3px 10px;border-radius:3px;
+                              font-size:11px;font-weight:700;text-decoration:none">
+                       📄 ${s.toUpperCase()}
+                    </a>`
+                 : `<span style="background:var(--gray-200);color:var(--gray-500);padding:3px 10px;
+                               border-radius:3px;font-size:11px">${s.toUpperCase()}</span>`;
+             }).join('')}
+         </div>`
+      : `<div class="alert-banner warn" style="margin-bottom:12px">⚠️ No PDFs uploaded to cloud storage yet.</div>`;
+
+    modalBody.innerHTML = `
+      <!-- Risk summary row -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+        <div style="background:var(--gray-100);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--gray-500)">Risk Score</div>
+          <div style="font-family:'Rajdhani';font-size:24px;font-weight:700;
+            color:${ar.risk_score>=60?'var(--red-flag)':ar.risk_score>=30?'var(--amber)':'var(--green-india)'}">
+            ${ar.risk_score}/100</div>
         </div>
-        ${(ar.risk_factors||[]).length>0?`<div class="alert-banner danger"><b>Risk Factors:</b><br>${ar.risk_factors.slice(0,3).map(f=>'⚠️ '+f).join('<br>')}</div>`:''}
+        <div style="background:var(--gray-100);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--gray-500)">Students</div>
+          <div style="font-family:'Rajdhani';font-size:24px;font-weight:700">${ar.inst_stats?.total_students||'—'}</div>
+        </div>
+        <div style="background:var(--gray-100);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--gray-500)">NAAC Grade</div>
+          <div style="font-family:'Rajdhani';font-size:24px;font-weight:700">${ar.inst_stats?.naac_grade||'—'}</div>
+        </div>
       </div>
+
+      ${(ar.risk_factors||[]).length > 0
+        ? `<div class="alert-banner danger" style="margin-bottom:12px">
+             <b>Risk Factors:</b><br>
+             ${ar.risk_factors.slice(0,3).map(f=>'⚠️ '+f).join('<br>')}
+           </div>` : ''}
+
+      <!-- PDF quick-access strip -->
+      ${pdfStrip}
+
+      <!-- Section table with View PDF column -->
       <div style="font-weight:700;font-size:14px;margin-bottom:8px">Section-wise Review Decision:</div>
-      <table class="data-table" style="margin-bottom:16px">
-        <thead><tr><th>Section</th><th>Key Data</th><th>Decision</th><th>Notes</th></tr></thead>
-        <tbody>${secRows}</tbody>
-      </table>
-      <div class="form-group"><label>Overall Authority Notes / Reason</label>
-        <textarea id="reviewNotes" rows="3" placeholder="Provide detailed notes for institution. If rejecting, explain what needs to be fixed." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:4px;font-family:'Noto Sans';font-size:13px;resize:vertical"></textarea>
+      <div style="overflow-x:auto">
+        <table class="data-table" style="margin-bottom:16px;min-width:600px">
+          <thead>
+            <tr>
+              <th>Section</th>
+              <th>Key Data</th>
+              <th>PDF</th>
+              <th>Decision</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>${secRows}</tbody>
+        </table>
+      </div>
+
+      <div class="form-group">
+        <label>Overall Authority Notes / Reason</label>
+        <textarea id="reviewNotes" rows="3"
+          placeholder="Provide detailed notes for institution. If rejecting, explain what needs to be fixed."
+          style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:4px;
+                 font-family:'Noto Sans';font-size:13px;resize:vertical"></textarea>
       </div>`;
-  } catch(e){modalBody.innerHTML='<div style="color:var(--red-flag)">Error loading application details.</div>';}
+
+  } catch (e) {
+    modalBody.innerHTML = '<div style="color:var(--red-flag)">Error loading application details.</div>';
+    console.error(e);
+  }
+}
+
+
+// ── CHANGE 3 ─────────────────────────────────────────────────────
+//  NEW helper — opens PDF in new tab using presigned URL.
+//  Used if you want a JS-triggered view instead of direct <a> tag.
+// ─────────────────────────────────────────────────────────────────
+function viewPDF(url) {
+  if (!url) { showToast('PDF not available.', 'red'); return; }
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 function closeReviewModal() {
@@ -1891,5 +2061,3 @@ var var_amber='#856404';
 </script>
 </body>
 </html>
-
-
