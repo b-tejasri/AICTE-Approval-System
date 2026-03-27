@@ -79,20 +79,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'aicteapproval.wsgi.application'
 
 # AWS S3 settings
-AWS_ACCESS_KEY_ID = 'AKIA4GN2VILB5ZAR6TEY'
-AWS_SECRET_ACCESS_KEY = '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'
-AWS_STORAGE_BUCKET_NAME = 'djangotestcase'
-AWS_S3_REGION_NAME = 'ap-south-1'
+AWS_ACCESS_KEY_ID = 'xxxxx'
+AWS_SECRET_ACCESS_KEY = 'xxxxxx'
+AWS_STORAGE_BUCKET_NAME = 'xxxx'
+AWS_S3_REGION_NAME = 'xxxxxx'
 
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = True
 
-RAZORPAY_KEY_ID = "rzp_live_SBfHnaNXR06cuM"
-RAZORPAY_KEY_SECRET = "Y8b8v0Z7cHXq0xjUjf7eThF0"
-RAZORPAY_WEBHOOK_SECRET = "x6G5DN0waFaUwcJIxvN96975"
-
-
-FCM_SERVER_KEY = "YOUR_SERVER_KEY_HERE"
 
 
 
@@ -118,7 +112,7 @@ DATABASES = {
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'kingchandus',
-        'HOST': 'testing.cb802oouacac.ap-south-1.rds.amazonaws.com',
+        'HOST': 'xxxx',
         'PORT': '5432',
     }
 }
